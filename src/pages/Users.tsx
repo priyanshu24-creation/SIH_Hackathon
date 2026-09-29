@@ -31,7 +31,7 @@ export const Users: React.FC = () => {
   const [newUserEmail, setNewUserEmail] = useState<string>('');
 
   useEffect(() => {
-    fetch('http://localhost:3001/api/officers')
+    fetch('/api/officers')
       .then(res => res.json())
       .then(data => setUsers(data))
       .catch(console.error);

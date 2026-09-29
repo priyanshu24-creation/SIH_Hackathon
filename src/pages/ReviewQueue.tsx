@@ -17,7 +17,7 @@ export const ReviewQueue: React.FC = () => {
   const [expandedGroups, setExpandedGroups] = useState<Record<string, boolean>>({ High: true, Medium: true, Low: false });
 
   useEffect(() => {
-    fetch('http://localhost:3001/api/records')
+    fetch('/api/records')
       .then(res => res.json())
       .then(data => {
         const pending = data.filter((r: any) => r.status === 'Needs Review').map((r: any) => ({

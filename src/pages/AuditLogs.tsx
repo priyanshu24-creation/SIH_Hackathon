@@ -25,7 +25,7 @@ export const AuditLogs: React.FC = () => {
   const [expandedIds, setExpandedIds] = useState<Set<string>>(new Set());
 
   useEffect(() => {
-    fetch('http://localhost:3001/api/audit_log')
+    fetch('/api/audit_log')
       .then(res => res.json())
       .then(data => setAuditLogs(data))
       .catch(console.error);

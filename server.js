@@ -14,7 +14,9 @@ app.use(cors());
 app.use(express.json());
 
 // Setup storage for uploaded documents
-const uploadDir = path.join(__dirname, 'uploads');
+const uploadDir = process.env.VERCEL
+  ? path.join('/tmp', 'sih-uploads')
+  : path.join(__dirname, 'uploads');
 if (!fs.existsSync(uploadDir)) {
   fs.mkdirSync(uploadDir);
 }
@@ -25,7 +27,9 @@ const storage = multer.diskStorage({
 const upload = multer({ storage });
 
 // Initialize SQLite database
-const dbFile = path.join(__dirname, 'database.sqlite');
+const dbFile = process.env.VERCEL
+  ? path.join('/tmp', 'sih-database.sqlite')
+  : path.join(__dirname, 'database.sqlite');
 const db = new sqlite3.Database(dbFile, (err) => {
   if (err) console.error('Error opening database', err);
 });
@@ -182,5 +186,25 @@ app.get('/api/audit_log', (req, res) => {
   });
 });
 
-const PORT = 3001;
-app.listen(PORT, () => console.log(`Server running on http://localhost:${PORT}`));
+// Serve the Vite production build from the same Express application.
+const distDir = path.join(__dirname, 'dist');
+app.use(express.static(distDir));
+
+// React Router fallback. API routes above keep their normal JSON responses.
+app.use((req, res, next) => {
+  if (req.method === 'GET' && !req.path.startsWith('/api/')) {
+    const indexFile = path.join(distDir, 'index.html');
+    if (fs.existsSync(indexFile)) {
+      return res.sendFile(indexFile);
+    }
+  }
+  next();
+});
+
+// Vercel imports the Express app. Local development still uses port 3001.
+if (!process.env.VERCEL) {
+  const PORT = process.env.PORT || 3001;
+  app.listen(PORT, () => console.log(`Server running on http://localhost:${PORT}`));
+}
+
+export default app;

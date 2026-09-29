@@ -29,7 +29,7 @@ export const LandRecords: React.FC = () => {
   const [statusFilter, setStatusFilter] = useState<string>('all');
 
   useEffect(() => {
-    fetch('http://localhost:3001/api/records')
+    fetch('/api/records')
       .then(res => res.json())
       .then(data => setRecords(data))
       .catch(console.error);
