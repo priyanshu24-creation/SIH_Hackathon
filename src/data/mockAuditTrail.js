@@ -1,0 +1,110 @@
+export const mockAuditTrail = [
+  {
+    id: "AUD-9918",
+    timestamp: "10:55 AM",
+    date: "11 Sep 2026",
+    user: "Officer A. Pradhan",
+    role: "Revenue Verification Officer",
+    action: "Record Approved",
+    recordId: "LR-2026-001284",
+    documentName: "Khatian_Record_102.pdf",
+    type: "success",
+    details: "Final approval granted. All 11 administrative fields validated; cadastral cross-check confirmed matching polygon PCL-10284."
+  },
+  {
+    id: "AUD-9917",
+    timestamp: "10:52 AM",
+    date: "11 Sep 2026",
+    user: "Officer A. Pradhan",
+    role: "Revenue Verification Officer",
+    action: "Field Corrected (Survey Number)",
+    recordId: "LR-2026-001284",
+    documentName: "Khatian_Record_102.pdf",
+    type: "edit",
+    details: "Re-inspected page 1 bounding box. Confirmed survey plot index '124/3' matches handwritten Bengali Porcha."
+  },
+  {
+    id: "AUD-9916",
+    timestamp: "10:46 AM",
+    date: "11 Sep 2026",
+    user: "System Dispatcher",
+    role: "Automated Pipeline",
+    action: "Record Assigned for Verification",
+    recordId: "LR-2026-001284",
+    documentName: "Khatian_Record_102.pdf",
+    type: "info",
+    details: "Low confidence mutation case stamp (61%) routed to Officer A. Pradhan under SLA Tier-1."
+  },
+  {
+    id: "AUD-9915",
+    timestamp: "10:45 AM",
+    date: "11 Sep 2026",
+    user: "Validation Engine v2.4",
+    role: "AI Rules Engine",
+    action: "Automated Validation Completed",
+    recordId: "LR-2026-001284",
+    documentName: "Khatian_Record_102.pdf",
+    type: "system",
+    details: "Completed 6 rule checks. Score: 92/100. 5 rules passed, 1 warning (Mutation seal confidence)."
+  },
+  {
+    id: "AUD-9914",
+    timestamp: "10:44 AM",
+    date: "11 Sep 2026",
+    user: "NER & Field Extractor",
+    role: "Document Intelligence",
+    action: "Fields Extracted",
+    recordId: "LR-2026-001284",
+    documentName: "Khatian_Record_102.pdf",
+    type: "system",
+    details: "Extracted 11 structured fields with spatial bounding boxes linked across page 1 and page 2."
+  },
+  {
+    id: "AUD-9913",
+    timestamp: "10:43 AM",
+    date: "11 Sep 2026",
+    user: "Multilingual OCR Engine",
+    role: "Vision Pipeline",
+    action: "OCR Processing Completed",
+    recordId: "LR-2026-001284",
+    documentName: "Khatian_Record_102.pdf",
+    type: "system",
+    details: "Bilingual Bangla-English character recognition done in 1.4s. Average word confidence: 96.2%."
+  },
+  {
+    id: "AUD-9912",
+    timestamp: "12:20 PM",
+    date: "11 Sep 2026",
+    user: "Officer A. Pradhan",
+    role: "Revenue Verification Officer",
+    action: "Document Uploaded",
+    recordId: "LR-2026-001284",
+    documentName: "Khatian_Record_102.pdf",
+    type: "info",
+    details: "Uploaded 3-page scanned PDF (4.2 MB) for Singamari Mouza, Darjeeling."
+  },
+  {
+    id: "AUD-9910",
+    timestamp: "04:18 PM",
+    date: "10 Sep 2026",
+    user: "GIS Engine",
+    role: "Spatial Cross-checker",
+    action: "Spatial Discrepancy Flagged",
+    recordId: "LR-2026-008421",
+    documentName: "Mutation_Deed_8421.pdf",
+    type: "warning",
+    details: "Area mismatch flagged: Title document indicates 2.45 acres, cadastral polygon PCL-10285 has 2.61 acres."
+  },
+  {
+    id: "AUD-9908",
+    timestamp: "11:20 AM",
+    date: "08 Sep 2026",
+    user: "Officer K. Mangar",
+    role: "Revenue Officer",
+    action: "Duplicate Flag Raised",
+    recordId: "LR-2026-004319",
+    documentName: "Porcha_Survey_88.pdf",
+    type: "warning",
+    details: "Flagged record for side-by-side comparison with LR-2026-008421 due to 93% metadata overlap."
+  }
+];
