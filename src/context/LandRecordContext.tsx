@@ -1,28 +1,23 @@
 import React, { createContext, useContext, useState, ReactNode } from 'react';
+
 import {
   LandRecord,
   ReviewQueueItem,
   AuditLog,
   DocumentItem,
   GISParcel,
-  ExtractedField,
+  ExtractedField
 } from '../types';
+
 import {
   initialLandRecords,
   initialReviewQueue,
   initialAuditLogs,
   mockDocuments,
-  gisParcels,
+  gisParcels
 } from '../data/mockData';
-import { useToast } from './ToastContext';
 
-interface ProcessingFile {
-  name: string;
-  size: string;
-  type: string;
-  district: string;
-  language: string;
-}
+import { useToast } from './ToastContext';
 
 interface LandRecordContextType {
   records: LandRecord[];
@@ -36,7 +31,13 @@ interface LandRecordContextType {
   activeEvidenceField: ExtractedField | null;
   reviewModalOpen: boolean;
   activeReviewItem: ReviewQueueItem | null;
-  currentProcessingFile: ProcessingFile;
+  currentProcessingFile: {
+    name: string;
+    size: string;
+    type: string;
+    district: string;
+    language: string;
+  };
   setActiveParcel: (parcel: GISParcel) => void;
   setHighlightedField: (field: ExtractedField | null) => void;
   openEvidenceModal: (field: ExtractedField) => void;
@@ -47,7 +48,13 @@ interface LandRecordContextType {
   approveReviewItem: (itemId: string) => void;
   rejectReviewItem: (itemId: string) => void;
   saveReviewCorrection: (itemId: string, correctedValue: string) => void;
-  setProcessingFile: (fileInfo: ProcessingFile) => void;
+  setProcessingFile: (fileInfo: {
+    name: string;
+    size: string;
+    type: string;
+    district: string;
+    language: string;
+  }) => void;
   updateRecordStatus: (recordId: string, status: LandRecord['status']) => void;
   updateStructuredRecord: (recordId: string, updatedFields: Partial<LandRecord>) => void;
   ingestNewDocument: (
@@ -58,33 +65,6 @@ interface LandRecordContextType {
 }
 
 const LandRecordContext = createContext<LandRecordContextType | undefined>(undefined);
-
-const confidenceLevel = (value: number): ExtractedField['confidenceLevel'] => {
-  if (value >= 90) return 'High';
-  if (value >= 70) return 'Medium';
-  return 'Low';
-};
-
-const makeField = (
-  id: string,
-  field: string,
-  value: string,
-  confidence: number,
-  x: number,
-  y: number,
-  width: number,
-  height: number,
-  method: string
-): ExtractedField => ({
-  id,
-  field,
-  value,
-  confidence,
-  confidenceLevel: confidenceLevel(confidence),
-  coordinates: { x, y, width, height, page: 1 },
-  method,
-  verified: false,
-});
 
 export const LandRecordProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const { showToast } = useToast();
@@ -101,15 +81,16 @@ export const LandRecordProvider: React.FC<{ children: ReactNode }> = ({ children
   const [activeEvidenceField, setActiveEvidenceField] = useState<ExtractedField | null>(null);
   const [reviewModalOpen, setReviewModalOpen] = useState(false);
   const [activeReviewItem, setActiveReviewItem] = useState<ReviewQueueItem | null>(null);
-  const [currentProcessingFile, setProcessingFile] = useState<ProcessingFile>({
+
+  const [currentProcessingFile, setProcessingFile] = useState({
     name: 'Khatian_1456.pdf',
     size: '2.4 MB',
     type: 'Khatian',
     district: 'Darjeeling',
-    language: 'Bengali',
+    language: 'Bengali / English'
   });
 
-  const activeRecord = records[0] ?? initialLandRecords[0];
+  const activeRecord: LandRecord = records[0] ?? initialLandRecords[0];
 
   const openEvidenceModal = (field: ExtractedField) => {
     setActiveEvidenceField(field);
@@ -133,81 +114,122 @@ export const LandRecordProvider: React.FC<{ children: ReactNode }> = ({ children
   };
 
   const updateRecordField = (recordId: string, fieldId: string, newValue: string) => {
-    setRecords((current) =>
-      current.map((record) => {
+    setRecords((previousRecords) =>
+      previousRecords.map((record) => {
         if (record.id !== recordId) return record;
+
         return {
           ...record,
           extractedFields: record.extractedFields.map((field) =>
-            field.id === fieldId ? { ...field, value: newValue, verified: true } : field
-          ),
+            field.id === fieldId
+              ? { ...field, value: newValue, verified: true }
+              : field
+          )
         };
       })
     );
+
+    showToast(
+      'Field Updated',
+      `Value updated to "${newValue}" successfully.`,
+      'success'
+    );
   };
 
-  const createAuditLog = (
-    item: ReviewQueueItem,
-    action: string,
-    details: string,
-    type: AuditLog['type']
-  ): AuditLog => ({
-    id: `audit-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
-    recordId: item.recordId,
-    time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-    timestamp: new Date().toISOString(),
-    action,
-    details,
-    user: 'Animesh Roy (Officer)',
-    type,
-  });
-
   const approveReviewItem = (itemId: string) => {
-    const item = reviewQueue.find((entry) => entry.id === itemId);
+    const item = reviewQueue.find((queueItem) => queueItem.id === itemId);
     if (!item) return;
 
-    setReviewQueue((current) =>
-      current.map((entry) => (entry.id === itemId ? { ...entry, status: 'Approved' } : entry))
+    setReviewQueue((previousQueue) =>
+      previousQueue.map((queueItem) =>
+        queueItem.id === itemId
+          ? { ...queueItem, status: 'Approved' }
+          : queueItem
+      )
     );
-    setAuditLogs((current) => [
-      createAuditLog(item, `Field ${item.field} approved`, `Approved value: ${item.extractedValue}`, 'approval'),
-      ...current,
-    ]);
-    showToast('Item Approved', `${item.field} has been approved.`, 'success');
+
+    const newLog: AuditLog = {
+      id: `a-${Date.now()}`,
+      recordId: item.recordId,
+      time: new Date().toLocaleTimeString([], {
+        hour: '2-digit',
+        minute: '2-digit'
+      }),
+      timestamp: new Date().toISOString(),
+      action: `Field ${item.field} Approved`,
+      details: `Officer Animesh approved extracted value: "${item.extractedValue}"`,
+      user: 'Animesh (Officer)',
+      type: 'approval'
+    };
+
+    setAuditLogs((previousLogs) => [newLog, ...previousLogs]);
+
+    showToast(
+      'Item Approved',
+      `${item.field} for ${item.recordId} has been approved.`,
+      'success'
+    );
+
     closeReviewModal();
   };
 
   const rejectReviewItem = (itemId: string) => {
-    const item = reviewQueue.find((entry) => entry.id === itemId);
+    const item = reviewQueue.find((queueItem) => queueItem.id === itemId);
     if (!item) return;
 
-    setReviewQueue((current) =>
-      current.map((entry) => (entry.id === itemId ? { ...entry, status: 'Rejected' } : entry))
+    setReviewQueue((previousQueue) =>
+      previousQueue.map((queueItem) =>
+        queueItem.id === itemId
+          ? { ...queueItem, status: 'Rejected' }
+          : queueItem
+      )
     );
-    setAuditLogs((current) => [
-      createAuditLog(item, `Field ${item.field} rejected`, `Rejected value: ${item.extractedValue}`, 'edit'),
-      ...current,
-    ]);
-    showToast('Item Rejected', `${item.field} was sent back for review.`, 'warning');
+
+    const newLog: AuditLog = {
+      id: `a-${Date.now()}`,
+      recordId: item.recordId,
+      time: new Date().toLocaleTimeString([], {
+        hour: '2-digit',
+        minute: '2-digit'
+      }),
+      timestamp: new Date().toISOString(),
+      action: `Field ${item.field} Rejected`,
+      details: `Value "${item.extractedValue}" rejected by officer. Sent for re-scanning.`,
+      user: 'Animesh (Officer)',
+      type: 'edit'
+    };
+
+    setAuditLogs((previousLogs) => [newLog, ...previousLogs]);
+
+    showToast(
+      'Item Rejected',
+      `${item.field} marked for document re-inspection.`,
+      'warning'
+    );
+
     closeReviewModal();
   };
 
   const saveReviewCorrection = (itemId: string, correctedValue: string) => {
-    const item = reviewQueue.find((entry) => entry.id === itemId);
+    const item = reviewQueue.find((queueItem) => queueItem.id === itemId);
     if (!item) return;
 
     const previousValue = item.extractedValue;
 
-    setReviewQueue((current) =>
-      current.map((entry) =>
-        entry.id === itemId
-          ? { ...entry, status: 'Corrected', extractedValue: correctedValue, suggestedValue: correctedValue }
-          : entry
+    setReviewQueue((previousQueue) =>
+      previousQueue.map((queueItem) =>
+        queueItem.id === itemId
+          ? {
+              ...queueItem,
+              status: 'Corrected',
+              extractedValue: correctedValue
+            }
+          : queueItem
       )
     );
 
-    setRecords((current) =>
-      current.map((record) => {
+    setRecords((previousRecords) =>
+      previousRecords.map((record) => {
         if (record.id !== item.recordId) return record;
 
         const updatedFields = record.extractedFields.map((field) =>
@@ -216,212 +238,431 @@ export const LandRecordProvider: React.FC<{ children: ReactNode }> = ({ children
                 ...field,
                 value: correctedValue,
                 confidence: 98,
-                confidenceLevel: 'High' as const,
-                verified: true,
+                verified: true
               }
             : field
         );
 
-        const updated: LandRecord = { ...record, extractedFields: updatedFields };
+        const updatedRecord: LandRecord = {
+          ...record,
+          extractedFields: updatedFields,
+          status: 'Verified'
+        };
 
-        if (item.field === 'Owner Name') updated.ownerName = correctedValue;
-        if (item.field === 'Plot No.') updated.plotNo = correctedValue;
-        if (item.field === 'Area' || item.field === 'Area (Acres)') {
-          const numeric = Number.parseFloat(correctedValue);
-          if (!Number.isNaN(numeric)) updated.areaAcre = numeric;
+        if (item.field === 'Plot No.') {
+          updatedRecord.plotNo = correctedValue;
         }
 
-        return updated;
+        if (item.field === 'Owner Name') {
+          updatedRecord.ownerName = correctedValue;
+        }
+
+        if (item.field === 'Area (Acres)') {
+        }
+
+        return updatedRecord;
       })
     );
 
-    setAuditLogs((current) => [
-      createAuditLog(
-        item,
-        `Officer corrected ${item.field}`,
-        `Changed value from "${previousValue}" to "${correctedValue}"`,
-        'edit'
-      ),
-      ...current,
-    ]);
+    const newLog: AuditLog = {
+      id: `a-${Date.now()}`,
+      recordId: item.recordId,
+      time: new Date().toLocaleTimeString([], {
+        hour: '2-digit',
+        minute: '2-digit'
+      }),
+      timestamp: new Date().toISOString(),
+      action: `Officer edited ${item.field}`,
+      details: `Corrected value: "${previousValue}" → "${correctedValue}"`,
+      user: 'Animesh (Officer)',
+      type: 'edit'
+    };
 
-    showToast('Correction Saved', `${item.field} updated successfully.`, 'success');
+    setAuditLogs((previousLogs) => [newLog, ...previousLogs]);
+
+    showToast(
+      'Correction Saved',
+      `${item.field} updated to "${correctedValue}". Audit trail recorded.`,
+      'success'
+    );
+
     closeReviewModal();
   };
 
-  const updateRecordStatus = (recordId: string, status: LandRecord['status']) => {
-    setRecords((current) => current.map((record) => (record.id === recordId ? { ...record, status } : record)));
+  const updateRecordStatus = (
+    recordId: string,
+    status: LandRecord['status']
+  ) => {
+    setRecords((previousRecords) =>
+      previousRecords.map((record) =>
+        record.id === recordId
+          ? { ...record, status }
+          : record
+      )
+    );
+
+    showToast(
+      'Status Updated',
+      `Record #${recordId} status set to "${status}".`,
+      'info'
+    );
   };
 
-  const updateStructuredRecord = (recordId: string, updatedFields: Partial<LandRecord>) => {
-    setRecords((current) => {
-      const targetId = current.some((record) => record.id === recordId) ? recordId : current[0]?.id;
-      return current.map((record) => (record.id === targetId ? { ...record, ...updatedFields } : record));
-    });
-    showToast('Record Saved', 'Structured land-record details have been saved.', 'success');
+  const updateStructuredRecord = (
+    recordId: string,
+    updatedFields: Partial<LandRecord>
+  ) => {
+    setRecords((previousRecords) =>
+      previousRecords.map((record) =>
+        record.id === recordId
+          ? { ...record, ...updatedFields }
+          : record
+      )
+    );
+
+    showToast(
+      'Record Saved',
+      `Structured details for Record #${recordId} saved.`,
+      'success'
+    );
   };
 
   const ingestNewDocument = (
-    file: { name: string; size: string; type: string },
+    file: {
+      name: string;
+      size: string;
+      type: string;
+    },
     docType: string,
     district: string
   ) => {
-    const newId = 'PROP-2026-001';
-    const uploadedDate = new Date().toLocaleDateString('en-IN', {
-      day: '2-digit',
-      month: 'short',
-      year: 'numeric',
-    });
+    const newId = `LR-${Date.now()}`;
+    const uploadDate = new Date().toISOString();
 
-    const ownerName = 'Arindam Sen';
-    const fatherName = 'Subhash Sen';
-    const plotNo = 'PLOT-1047';
-    const khatianNo = 'KH-7842';
-    const surveyNo = 'SURV-2026-1047';
-    const areaAcre = 0.82;
-    const landType = 'Agricultural Land';
-    const village = 'Shantipur Demo Village';
-    const tehsil = 'Demo Block-I';
-    const demoDistrict = 'Durgapur Demo District';
-    const address = '12 Demo Road, Shantipur Demo Village, West Bengal';
+    const ownerName = 'Ramesh Das';
+    const fatherName = 'Haran Das';
+    const plotNumber = '302';
+    const khatianNumber = '1456';
+    const area = 0.82;
 
     const extractedFields: ExtractedField[] = [
-      makeField(`field-owner-${newId}`, 'Owner Name', ownerName, 96, 100, 345, 210, 42, 'OCR + field extraction'),
-      makeField(`field-father-${newId}`, 'Father / Husband Name', fatherName, 94, 100, 395, 250, 42, 'OCR + field extraction'),
-      makeField(`field-khatian-${newId}`, 'Khatian No.', khatianNo, 97, 40, 230, 260, 48, 'OCR + pattern match'),
-      makeField(`field-plot-${newId}`, 'Plot No.', plotNo, 98, 390, 345, 100, 45, 'OCR + pattern match'),
-      makeField(`field-area-${newId}`, 'Area', `${areaAcre} acre`, 95, 620, 345, 130, 45, 'OCR + rule engine'),
-      makeField(`field-survey-${newId}`, 'Survey No.', surveyNo, 96, 40, 285, 260, 42, 'OCR + pattern match'),
-      makeField(`field-land-${newId}`, 'Land Type', landType, 93, 490, 395, 180, 42, 'Classification model'),
-      makeField(`field-village-${newId}`, 'Village', village, 94, 520, 170, 220, 40, 'Gazetteer match'),
-      makeField(`field-tehsil-${newId}`, 'Tehsil', tehsil, 94, 280, 170, 220, 40, 'Gazetteer match'),
-      makeField(`field-district-${newId}`, 'District', demoDistrict, 98, 40, 170, 230, 40, 'Gazetteer match'),
-      makeField(`field-address-${newId}`, 'Address', address, 92, 40, 445, 700, 50, 'OCR + field extraction'),
+      {
+        id: `field-owner-${newId}`,
+        field: 'Owner Name',
+        value: ownerName,
+        confidence: 96,
+        confidenceLevel: 'High',
+        coordinates: {
+          x: 10,
+          y: 35,
+          width: 80,
+          height: 20,
+          page: 1
+        },
+        method: 'OCR + Entity Extraction',
+        verified: true
+      },
+      {
+        id: `field-father-${newId}`,
+        field: 'Father / Husband Name',
+        value: fatherName,
+        confidence: 95,
+        confidenceLevel: 'High',
+        coordinates: {
+          x: 10,
+          y: 60,
+          width: 80,
+          height: 20,
+          page: 1
+        },
+        method: 'OCR + Entity Extraction',
+        verified: true
+      },
+      {
+        id: `field-plot-${newId}`,
+        field: 'Plot No.',
+        value: plotNumber,
+        confidence: 97,
+        confidenceLevel: 'High',
+        coordinates: {
+          x: 10,
+          y: 85,
+          width: 40,
+          height: 20,
+          page: 1
+        },
+        method: 'OCR + Pattern Matching',
+        verified: true
+      },
+      {
+        id: `field-khatian-${newId}`,
+        field: 'Khatian No.',
+        value: khatianNumber,
+        confidence: 98,
+        confidenceLevel: 'High',
+        coordinates: {
+          x: 55,
+          y: 85,
+          width: 40,
+          height: 20,
+          page: 1
+        },
+        method: 'OCR + Pattern Matching',
+        verified: true
+      },
+      {
+        id: `field-area-${newId}`,
+        field: 'Area (Acres)',
+        value: String(area),
+        confidence: 94,
+        confidenceLevel: 'High',
+        coordinates: {
+          x: 10,
+          y: 110,
+          width: 45,
+          height: 20,
+          page: 1
+        },
+        method: 'OCR + Numeric Extraction',
+        verified: true
+      },
+      {
+        id: `field-landtype-${newId}`,
+        field: 'Land Type',
+        value: 'Agricultural',
+        confidence: 93,
+        confidenceLevel: 'High',
+        coordinates: {
+          x: 60,
+          y: 110,
+          width: 35,
+          height: 20,
+          page: 1
+        },
+        method: 'OCR + Classification',
+        verified: true
+      },
+      {
+        id: `field-village-${newId}`,
+        field: 'Village',
+        value: 'ABC',
+        confidence: 91,
+        confidenceLevel: 'High',
+        coordinates: {
+          x: 10,
+          y: 135,
+          width: 60,
+          height: 20,
+          page: 1
+        },
+        method: 'OCR + Entity Extraction',
+        verified: true
+      },
+      {
+        id: `field-block-${newId}`,
+        field: 'Block',
+        value: 'XYZ',
+        confidence: 90,
+        confidenceLevel: 'High',
+        coordinates: {
+          x: 10,
+          y: 160,
+          width: 50,
+          height: 20,
+          page: 1
+        },
+        method: 'OCR + Entity Extraction',
+        verified: true
+      },
+      {
+        id: `field-district-${newId}`,
+        field: 'District',
+        value: district || 'Darjeeling',
+        confidence: 99,
+        confidenceLevel: 'High',
+        coordinates: {
+          x: 65,
+          y: 160,
+          width: 30,
+          height: 20,
+          page: 1
+        },
+        method: 'OCR + Entity Extraction',
+        verified: true
+      },
+      {
+        id: `field-survey-${newId}`,
+        field: 'Survey Year',
+        value: '1968-69',
+        confidence: 92,
+        confidenceLevel: 'High',
+        coordinates: {
+          x: 10,
+          y: 185,
+          width: 45,
+          height: 20,
+          page: 1
+        },
+        method: 'OCR + Pattern Matching',
+        verified: true
+      },
+      {
+        id: `field-state-${newId}`,
+        field: 'State',
+        value: 'West Bengal',
+        confidence: 99,
+        confidenceLevel: 'High',
+        coordinates: {
+          x: 60,
+          y: 185,
+          width: 35,
+          height: 20,
+          page: 1
+        },
+        method: 'OCR + Entity Extraction',
+        verified: true
+      }
     ];
+
+    const newDocument: DocumentItem = {
+      id: newId,
+      fileName: file.name,
+      fileSize: file.size,
+      uploadedDate: uploadDate,
+      status: 'Processing',
+      type: docType || 'Khatian',
+      pages: 1,
+      confidence: 95,
+      district: district || 'Darjeeling'
+    };
 
     const newRecord: LandRecord = {
       id: newId,
-      documentId: `DOC-${newId}`,
+      documentId: newId,
       ownerName,
       fatherName,
-      address,
-      khatianNo,
-      plotNo,
-      areaAcre,
-      referenceAreaAcre: areaAcre,
-      landType,
-      village,
-      tehsil,
-      district: demoDistrict || district,
+      address: 'ABC Village, XYZ Block, Darjeeling, West Bengal',
+      khatianNo: khatianNumber,
+      plotNo: plotNumber,
+      areaAcre: area,
+      referenceAreaAcre: area,
+      landType: 'Agricultural',
+      village: 'ABC',
+      tehsil: 'XYZ',
+      district: district || 'Darjeeling',
       status: 'Pending',
       confidence: 95,
-      uploadedDate,
+      uploadedDate: uploadDate,
       fileName: file.name,
       fileSize: file.size,
       extractedFields,
-      validationRules: [
-        {
-          id: `validation-${newId}-plot`,
-          field: 'Plot No.',
-          documentValue: plotNo,
-          referenceValue: plotNo,
-          status: 'Match',
-          ruleDescription: 'Plot identifier is present and internally consistent.',
-        },
-        {
-          id: `validation-${newId}-area`,
-          field: 'Area',
-          documentValue: `${areaAcre} acre`,
-          referenceValue: `${areaAcre} acre`,
-          status: 'Match',
-          ruleDescription: 'Document area matches the prototype reference value.',
-        },
-      ],
+      validationRules: []
     };
 
-    const reviewBase = {
-      documentId: newRecord.documentId,
-      suggestedValue: '',
-      reason: 'Prototype extraction requires officer confirmation.',
-      priority: 'Medium' as const,
-      category: 'Low Confidence' as const,
-      cropCoordinates: extractedFields[0].coordinates,
-      assignedTo: 'Animesh Roy',
-    };
-
-    const newReviewItems: ReviewQueueItem[] = [
+    const reviewItems: ReviewQueueItem[] = [
       {
-        ...reviewBase,
-        id: `review-plot-${newId}`,
-        recordId: newId,
-        field: 'Plot No.',
-        extractedValue: plotNo,
-        suggestedValue: plotNo,
-        confidence: 98,
-        status: 'Pending',
-        cropCoordinates: extractedFields[3].coordinates,
-      },
-      {
-        ...reviewBase,
         id: `review-owner-${newId}`,
         recordId: newId,
+        documentId: newId,
         field: 'Owner Name',
         extractedValue: ownerName,
         suggestedValue: ownerName,
         confidence: 96,
+        reason: 'Manual verification recommended',
+        priority: 'Medium',
         status: 'Pending',
-        cropCoordinates: extractedFields[0].coordinates,
+        category: 'Low Confidence',
+        cropCoordinates: extractedFields[0].coordinates
       },
       {
-        ...reviewBase,
+        id: `review-father-${newId}`,
+        recordId: newId,
+        documentId: newId,
+        field: 'Father / Husband Name',
+        extractedValue: fatherName,
+        suggestedValue: fatherName,
+        confidence: 95,
+        reason: 'Manual verification recommended',
+        priority: 'Medium',
+        status: 'Pending',
+        category: 'Low Confidence',
+        cropCoordinates: extractedFields[1].coordinates
+      },
+      {
+        id: `review-plot-${newId}`,
+        recordId: newId,
+        documentId: newId,
+        field: 'Plot No.',
+        extractedValue: plotNumber,
+        suggestedValue: plotNumber,
+        confidence: 97,
+        reason: 'Verify plot number against source document',
+        priority: 'Low',
+        status: 'Pending',
+        category: 'Validation Issues',
+        cropCoordinates: extractedFields[2].coordinates
+      },
+      {
+        id: `review-khatian-${newId}`,
+        recordId: newId,
+        documentId: newId,
+        field: 'Khatian No.',
+        extractedValue: khatianNumber,
+        suggestedValue: khatianNumber,
+        confidence: 98,
+        reason: 'Verify khatian number against source document',
+        priority: 'Low',
+        status: 'Pending',
+        category: 'Validation Issues',
+        cropCoordinates: extractedFields[3].coordinates
+      },
+      {
         id: `review-area-${newId}`,
         recordId: newId,
-        field: 'Area',
-        extractedValue: `${areaAcre} acre`,
-        suggestedValue: `${areaAcre} acre`,
-        confidence: 95,
+        documentId: newId,
+        field: 'Area (Acres)',
+        extractedValue: String(area),
+        suggestedValue: String(area),
+        confidence: 94,
+        reason: 'Verify recorded land area',
+        priority: 'Medium',
         status: 'Pending',
-        cropCoordinates: extractedFields[4].coordinates,
-      },
+        category: 'Validation Issues',
+        cropCoordinates: extractedFields[4].coordinates
+      }
     ];
 
-    const newDocument: DocumentItem = {
-      id: newRecord.documentId,
-      fileName: file.name,
-      fileSize: file.size,
-      type: docType,
-      district: demoDistrict || district,
-      uploadedDate,
-      status: 'Processing',
-      confidence: 95,
-      pages: 1,
-    };
+    setDocuments((previous) => [newDocument, ...previous]);
+    setRecords((previous) => [newRecord, ...previous]);
+    setReviewQueue((previous) => [...reviewItems, ...previous]);
 
-    const newAuditLog: AuditLog = {
-      id: `audit-upload-${Date.now()}`,
-      recordId: newId,
-      time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-      timestamp: new Date().toISOString(),
-      action: 'Document uploaded',
-      details: `${file.name} queued for digitization.`,
-      user: 'System',
-      type: 'upload',
-    };
+    setAuditLogs((previous) => [
+      {
+        id: `audit-${newId}`,
+        recordId: newId,
+        time: new Date().toLocaleTimeString(),
+        timestamp: uploadDate,
+        action: 'Document Uploaded',
+        details: `${file.name} uploaded and queued for extraction.`,
+        user: 'SIH Demo Officer',
+        type: 'upload'
+      },
+      ...previous
+    ]);
 
-    setRecords([newRecord]);
-    setReviewQueue(newReviewItems);
-    setDocuments([newDocument]);
-    setAuditLogs([newAuditLog]);
     setProcessingFile({
       name: file.name,
       size: file.size,
-      type: docType,
-      district: demoDistrict || district,
-      language: 'Bengali / English',
+      type: docType || 'Khatian',
+      district: district || 'Darjeeling',
+      language: 'Bengali'
     });
-    setHighlightedField(extractedFields[0]);
 
-    showToast('Document processed', 'Prototype land-record fields are ready for officer verification.', 'success');
+    showToast(
+      'Document Uploaded',
+      `${file.name} has been added to the verification queue.`,
+      'success'
+    );
   };
 
   return (
@@ -452,7 +693,7 @@ export const LandRecordProvider: React.FC<{ children: ReactNode }> = ({ children
         setProcessingFile,
         updateRecordStatus,
         updateStructuredRecord,
-        ingestNewDocument,
+        ingestNewDocument
       }}
     >
       {children}
@@ -462,8 +703,10 @@ export const LandRecordProvider: React.FC<{ children: ReactNode }> = ({ children
 
 export const useLandRecord = () => {
   const context = useContext(LandRecordContext);
+
   if (!context) {
     throw new Error('useLandRecord must be used within a LandRecordProvider');
   }
+
   return context;
 };

@@ -9,7 +9,6 @@ import {
   Check,
   Eye
 } from 'lucide-react';
-import { getSampleDocumentSvg } from '../../data/sampleDocumentSvg';
 import { ExtractedField } from '../../types';
 import { useLandRecord } from '../../context/LandRecordContext';
 import { useToast } from '../../context/ToastContext';
@@ -40,7 +39,7 @@ export const DocumentViewer: React.FC<DocumentViewerProps> = ({
   const [dragStart, setDragStart] = useState<{ x: number; y: number }>({ x: 0, y: 0 });
 
   const containerRef = useRef<HTMLDivElement>(null);
-  const docSvgUrl = getSampleDocumentSvg();
+  const documentImageUrl = `${import.meta.env.BASE_URL}documents/Hackathon_Demo_real.png`;
 
   const handleZoomIn = () => setZoom((prev) => Math.min(prev + 0.25, 2.5));
   const handleZoomOut = () => setZoom((prev) => Math.max(prev - 0.25, 0.6));
@@ -53,12 +52,12 @@ export const DocumentViewer: React.FC<DocumentViewerProps> = ({
 
   const handleDownload = () => {
     const link = document.createElement('a');
-    link.href = docSvgUrl;
-    link.download = 'Khatian_1456_Record_1024.svg';
+    link.href = documentImageUrl;
+    link.download = 'Hackathon_Demo_page1.png';
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
-    showToast('Download Started', 'Khatian_1456.pdf (scanned image) downloaded.', 'info');
+    showToast('Download Started', 'Original scanned land-record image downloaded.', 'info');
   };
 
   const handleMouseDown = (e: React.MouseEvent) => {
@@ -195,10 +194,22 @@ export const DocumentViewer: React.FC<DocumentViewerProps> = ({
         >
           {/* Scanned Image Component */}
           <img
-            src={docSvgUrl}
-            alt="Scanned West Bengal Land Record Khatian 1456"
-            className="w-[620px] max-w-none block pointer-events-none rounded shadow-2xl border border-black/30"
+            src={documentImageUrl}
+            alt="Scanned West Bengal Land Record - Khatian 1456"
+            className="w-[620px] h-auto max-w-none block pointer-events-none rounded shadow-2xl border border-black/30 object-contain"
             draggable={false}
+            onError={(e) => {
+              console.error("Failed to load land record image:", documentImageUrl);
+              e.currentTarget.style.display = "none";
+            }}
+            onLoad={(e) => {
+              console.log(
+                "Land record image loaded:",
+                e.currentTarget.naturalWidth,
+                "x",
+                e.currentTarget.naturalHeight
+              );
+            }}
           />
 
           {/* Interactive Bounding Box Overlays — colour by confidence */}
