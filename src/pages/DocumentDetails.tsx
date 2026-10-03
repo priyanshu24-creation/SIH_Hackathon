@@ -104,6 +104,7 @@ export const DocumentDetails: React.FC = () => {
     openEvidenceModal,
     closeEvidenceModal,
     updateRecordStatus,
+    currentProcessingFile,
   } = useLandRecord();
   const { showToast } = useToast();
 
@@ -325,6 +326,8 @@ export const DocumentDetails: React.FC = () => {
               fields={fields}
               activeField={highlightedField}
               onFieldClick={handleFieldSelect}
+              documentUrl={currentProcessingFile.documentUrl}
+              fileName={currentProcessingFile.name || activeRecord.fileName}
               heightClass="h-[580px]"
             />
             {/* Highlight legend */}

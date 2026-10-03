@@ -36,7 +36,7 @@ export const ReviewModal: React.FC<ReviewModalProps> = ({ isOpen, onClose, item 
   const handleApprove = async () => {
     try {
       await fetch(`/api/records/${item.id}/status`, {
-        method: 'POST',
+        method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ status: 'Verified' })
       });
@@ -55,7 +55,7 @@ export const ReviewModal: React.FC<ReviewModalProps> = ({ isOpen, onClose, item 
   const handleSaveCorrection = async () => {
     try {
       await fetch(`/api/records/${item.id}/status`, {
-        method: 'POST',
+        method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ status: 'Verified' })
       });

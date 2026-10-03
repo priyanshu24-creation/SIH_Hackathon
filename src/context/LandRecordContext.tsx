@@ -37,6 +37,7 @@ interface LandRecordContextType {
     type: string;
     district: string;
     language: string;
+    documentUrl?: string;
   };
   setActiveParcel: (parcel: GISParcel) => void;
   setHighlightedField: (field: ExtractedField | null) => void;
@@ -54,11 +55,12 @@ interface LandRecordContextType {
     type: string;
     district: string;
     language: string;
+    documentUrl?: string;
   }) => void;
   updateRecordStatus: (recordId: string, status: LandRecord['status']) => void;
   updateStructuredRecord: (recordId: string, updatedFields: Partial<LandRecord>) => void;
   ingestNewDocument: (
-    file: { name: string; size: string; type: string },
+    file: { name: string; size: string; type: string; url?: string },
     docType: string,
     district: string
   ) => void;
@@ -82,12 +84,20 @@ export const LandRecordProvider: React.FC<{ children: ReactNode }> = ({ children
   const [reviewModalOpen, setReviewModalOpen] = useState(false);
   const [activeReviewItem, setActiveReviewItem] = useState<ReviewQueueItem | null>(null);
 
-  const [currentProcessingFile, setProcessingFile] = useState({
+  const [currentProcessingFile, setProcessingFile] = useState<{
+    name: string;
+    size: string;
+    type: string;
+    district: string;
+    language: string;
+    documentUrl?: string;
+  }>({
     name: 'Khatian_1456.pdf',
     size: '2.4 MB',
     type: 'Khatian',
     district: 'Darjeeling',
-    language: 'Bengali / English'
+    language: 'Bengali / English',
+    documentUrl: `${import.meta.env.BASE_URL}documents/Hackathon_Demo_real.png`
   });
 
   const activeRecord: LandRecord = records[0] ?? initialLandRecords[0];
@@ -257,9 +267,6 @@ export const LandRecordProvider: React.FC<{ children: ReactNode }> = ({ children
           updatedRecord.ownerName = correctedValue;
         }
 
-        if (item.field === 'Area (Acres)') {
-        }
-
         return updatedRecord;
       })
     );
@@ -332,195 +339,107 @@ export const LandRecordProvider: React.FC<{ children: ReactNode }> = ({ children
       name: string;
       size: string;
       type: string;
+      url?: string;
     },
     docType: string,
     district: string
   ) => {
-    const newId = `LR-${Date.now()}`;
-    const uploadDate = new Date().toISOString();
+    const newId = 'PROP-2026-001';
+    const uploadDate = new Date().toISOString().split('T')[0];
 
-    const ownerName = 'Ramesh Das';
-    const fatherName = 'Haran Das';
-    const plotNumber = '302';
-    const khatianNumber = '1456';
+    // Demo extraction adapter for the supplied SIH land-record document.
+    // The UI is wired to accept real OCR output later without changing the viewer.
+    const ownerName = 'Arindam Sen';
+    const fatherName = 'Subhash Sen';
+    const address =
+      'Shantipur Demo Village, Demo Block-1, Durgapur, Demo District, West Bengal - 700000';
+    const plotNumber = 'DAG-1047';
+    const khatianNumber = 'KH-7842';
+    const surveyNumber = 'SURV-2026-1047';
     const area = 0.82;
+    const landType = 'Agricultural Land';
+    const village = 'Shantipur Demo Village';
+    const tehsil = 'Demo Block-1';
+    const demoDistrict = 'Durgapur Demo';
+    const districtCode = 'PLOT-1047';
+    const propertyId = 'PROP-2026-001';
+    const villageNo = '1047';
+    const totalPlots = '1';
+    const recordType = 'Revenue - Demo Record';
+    const currency = 'INR';
+    const recordCreationDate = '15/08/2026';
+    const shareInPlot = '1.0000';
+    const ownerLandArea = '0.82 Acre';
 
+    const confidence = 94;
+
+    const box = (
+      id: string,
+      field: string,
+      value: string,
+      confidenceValue: number,
+      x: number,
+      y: number,
+      width: number,
+      height: number,
+      method = 'Demo OCR + field extraction'
+    ): ExtractedField => ({
+      id,
+      field,
+      value,
+      confidence: confidenceValue,
+      confidenceLevel:
+        confidenceValue >= 90 ? 'High' : confidenceValue >= 75 ? 'Medium' : 'Low',
+      coordinates: { x, y, width, height, page: 1 },
+      method,
+      verified: false
+    });
+
+    // Coordinates are based on the 1240 x 1755 demo scan.
     const extractedFields: ExtractedField[] = [
+      box(`field-property-${newId}`, 'Property ID', propertyId, 98, 910, 20, 300, 70),
+      box(`field-district-${newId}`, 'District', demoDistrict, 97, 20, 10, 430, 65),
+      box(`field-village-${newId}`, 'Village', village, 96, 20, 70, 500, 70),
+      box(`field-block-${newId}`, 'Block', tehsil, 96, 900, 65, 300, 75),
+      box(`field-date-${newId}`, 'Record Creation Date', recordCreationDate, 95, 800, 145, 390, 65),
+      box(`field-landarea-${newId}`, 'Land Area', `${area.toFixed(2)} Acre`, 97, 30, 195, 360, 55),
+      box(`field-totalplots-${newId}`, 'Total Number of Plots', totalPlots, 97, 430, 195, 360, 55),
+      box(`field-owner-${newId}`, 'Owner Name', ownerName, 96, 300, 365, 290, 65),
+      box(`field-father-${newId}`, "Father's Name", fatherName, 95, 300, 430, 290, 65),
+      box(`field-address-${newId}`, 'Address', address, 91, 300, 495, 300, 125),
+      box(`field-plot-${newId}`, 'Plot No.', plotNumber, 97, 35, 930, 135, 70),
+      box(`field-landtype-${newId}`, 'Land Classification', landType, 94, 165, 910, 170, 100),
+      box(`field-survey-${newId}`, 'Survey No.', surveyNumber, 92, 350, 920, 190, 120),
+      box(`field-area2-${newId}`, 'Total Plot Area', `${area.toFixed(2)} Acre`, 97, 570, 965, 160, 90),
+      box(`field-share-${newId}`, 'Share in Plot', shareInPlot, 96, 735, 965, 145, 90),
+      box(`field-ownerarea-${newId}`, "Owner's Land Area", ownerLandArea, 96, 885, 965, 285, 90),
+      box(`field-khatian-${newId}`, 'Khatian No.', khatianNumber, 97, 350, 1010, 190, 115)
+    ];
+
+    const validationRules: LandRecord['validationRules'] = [
       {
-        id: `field-owner-${newId}`,
+        id: `v-${newId}-area`,
+        field: 'Land Area',
+        documentValue: area.toFixed(2),
+        referenceValue: area.toFixed(2),
+        status: 'Passed',
+        ruleDescription: 'Owner land area matches the total plot area.'
+      },
+      {
+        id: `v-${newId}-share`,
+        field: 'Share in Plot',
+        documentValue: shareInPlot,
+        referenceValue: '1.0000',
+        status: 'Match',
+        ruleDescription: 'Ownership share is within the valid 0–1 range.'
+      },
+      {
+        id: `v-${newId}-owner`,
         field: 'Owner Name',
-        value: ownerName,
-        confidence: 96,
-        confidenceLevel: 'High',
-        coordinates: {
-          x: 10,
-          y: 35,
-          width: 80,
-          height: 20,
-          page: 1
-        },
-        method: 'OCR + Entity Extraction',
-        verified: true
-      },
-      {
-        id: `field-father-${newId}`,
-        field: 'Father / Husband Name',
-        value: fatherName,
-        confidence: 95,
-        confidenceLevel: 'High',
-        coordinates: {
-          x: 10,
-          y: 60,
-          width: 80,
-          height: 20,
-          page: 1
-        },
-        method: 'OCR + Entity Extraction',
-        verified: true
-      },
-      {
-        id: `field-plot-${newId}`,
-        field: 'Plot No.',
-        value: plotNumber,
-        confidence: 97,
-        confidenceLevel: 'High',
-        coordinates: {
-          x: 10,
-          y: 85,
-          width: 40,
-          height: 20,
-          page: 1
-        },
-        method: 'OCR + Pattern Matching',
-        verified: true
-      },
-      {
-        id: `field-khatian-${newId}`,
-        field: 'Khatian No.',
-        value: khatianNumber,
-        confidence: 98,
-        confidenceLevel: 'High',
-        coordinates: {
-          x: 55,
-          y: 85,
-          width: 40,
-          height: 20,
-          page: 1
-        },
-        method: 'OCR + Pattern Matching',
-        verified: true
-      },
-      {
-        id: `field-area-${newId}`,
-        field: 'Area (Acres)',
-        value: String(area),
-        confidence: 94,
-        confidenceLevel: 'High',
-        coordinates: {
-          x: 10,
-          y: 110,
-          width: 45,
-          height: 20,
-          page: 1
-        },
-        method: 'OCR + Numeric Extraction',
-        verified: true
-      },
-      {
-        id: `field-landtype-${newId}`,
-        field: 'Land Type',
-        value: 'Agricultural',
-        confidence: 93,
-        confidenceLevel: 'High',
-        coordinates: {
-          x: 60,
-          y: 110,
-          width: 35,
-          height: 20,
-          page: 1
-        },
-        method: 'OCR + Classification',
-        verified: true
-      },
-      {
-        id: `field-village-${newId}`,
-        field: 'Village',
-        value: 'ABC',
-        confidence: 91,
-        confidenceLevel: 'High',
-        coordinates: {
-          x: 10,
-          y: 135,
-          width: 60,
-          height: 20,
-          page: 1
-        },
-        method: 'OCR + Entity Extraction',
-        verified: true
-      },
-      {
-        id: `field-block-${newId}`,
-        field: 'Block',
-        value: 'XYZ',
-        confidence: 90,
-        confidenceLevel: 'High',
-        coordinates: {
-          x: 10,
-          y: 160,
-          width: 50,
-          height: 20,
-          page: 1
-        },
-        method: 'OCR + Entity Extraction',
-        verified: true
-      },
-      {
-        id: `field-district-${newId}`,
-        field: 'District',
-        value: district || 'Darjeeling',
-        confidence: 99,
-        confidenceLevel: 'High',
-        coordinates: {
-          x: 65,
-          y: 160,
-          width: 30,
-          height: 20,
-          page: 1
-        },
-        method: 'OCR + Entity Extraction',
-        verified: true
-      },
-      {
-        id: `field-survey-${newId}`,
-        field: 'Survey Year',
-        value: '1968-69',
-        confidence: 92,
-        confidenceLevel: 'High',
-        coordinates: {
-          x: 10,
-          y: 185,
-          width: 45,
-          height: 20,
-          page: 1
-        },
-        method: 'OCR + Pattern Matching',
-        verified: true
-      },
-      {
-        id: `field-state-${newId}`,
-        field: 'State',
-        value: 'West Bengal',
-        confidence: 99,
-        confidenceLevel: 'High',
-        coordinates: {
-          x: 60,
-          y: 185,
-          width: 35,
-          height: 20,
-          page: 1
-        },
-        method: 'OCR + Entity Extraction',
-        verified: true
+        documentValue: ownerName,
+        referenceValue: ownerName,
+        status: 'Match',
+        ruleDescription: 'Owner name extracted successfully.'
       }
     ];
 
@@ -528,12 +447,12 @@ export const LandRecordProvider: React.FC<{ children: ReactNode }> = ({ children
       id: newId,
       fileName: file.name,
       fileSize: file.size,
-      uploadedDate: uploadDate,
       status: 'Processing',
-      type: docType || 'Khatian',
+      type: docType || file.type || 'Land Record',
       pages: 1,
-      confidence: 95,
-      district: district || 'Darjeeling'
+      confidence,
+      district: demoDistrict || district,
+      uploadedDate: uploadDate
     };
 
     const newRecord: LandRecord = {
@@ -541,126 +460,73 @@ export const LandRecordProvider: React.FC<{ children: ReactNode }> = ({ children
       documentId: newId,
       ownerName,
       fatherName,
-      address: 'ABC Village, XYZ Block, Darjeeling, West Bengal',
+      address,
       khatianNo: khatianNumber,
       plotNo: plotNumber,
       areaAcre: area,
       referenceAreaAcre: area,
-      landType: 'Agricultural',
-      village: 'ABC',
-      tehsil: 'XYZ',
-      district: district || 'Darjeeling',
-      status: 'Pending',
-      confidence: 95,
+      landType,
+      village,
+      tehsil,
+      district: demoDistrict,
+      status: 'Needs Verification',
+      confidence,
       uploadedDate: uploadDate,
       fileName: file.name,
       fileSize: file.size,
       extractedFields,
-      validationRules: []
+      validationRules
     };
 
-    const reviewItems: ReviewQueueItem[] = [
-      {
-        id: `review-owner-${newId}`,
-        recordId: newId,
-        documentId: newId,
-        field: 'Owner Name',
-        extractedValue: ownerName,
-        suggestedValue: ownerName,
-        confidence: 96,
-        reason: 'Manual verification recommended',
-        priority: 'Medium',
-        status: 'Pending',
-        category: 'Low Confidence',
-        cropCoordinates: extractedFields[0].coordinates
-      },
-      {
-        id: `review-father-${newId}`,
-        recordId: newId,
-        documentId: newId,
-        field: 'Father / Husband Name',
-        extractedValue: fatherName,
-        suggestedValue: fatherName,
-        confidence: 95,
-        reason: 'Manual verification recommended',
-        priority: 'Medium',
-        status: 'Pending',
-        category: 'Low Confidence',
-        cropCoordinates: extractedFields[1].coordinates
-      },
-      {
-        id: `review-plot-${newId}`,
-        recordId: newId,
-        documentId: newId,
-        field: 'Plot No.',
-        extractedValue: plotNumber,
-        suggestedValue: plotNumber,
-        confidence: 97,
-        reason: 'Verify plot number against source document',
-        priority: 'Low',
-        status: 'Pending',
-        category: 'Validation Issues',
-        cropCoordinates: extractedFields[2].coordinates
-      },
-      {
-        id: `review-khatian-${newId}`,
-        recordId: newId,
-        documentId: newId,
-        field: 'Khatian No.',
-        extractedValue: khatianNumber,
-        suggestedValue: khatianNumber,
-        confidence: 98,
-        reason: 'Verify khatian number against source document',
-        priority: 'Low',
-        status: 'Pending',
-        category: 'Validation Issues',
-        cropCoordinates: extractedFields[3].coordinates
-      },
-      {
-        id: `review-area-${newId}`,
-        recordId: newId,
-        documentId: newId,
-        field: 'Area (Acres)',
-        extractedValue: String(area),
-        suggestedValue: String(area),
-        confidence: 94,
-        reason: 'Verify recorded land area',
-        priority: 'Medium',
-        status: 'Pending',
-        category: 'Validation Issues',
-        cropCoordinates: extractedFields[4].coordinates
-      }
-    ];
+    const reviewFields = extractedFields.filter((field) => field.confidence < 95);
+    const newReviewItems: ReviewQueueItem[] = reviewFields.map((field, index) => ({
+      id: `review-${newId}-${index}`,
+      recordId: newId,
+      documentId: newId,
+      field: field.field,
+      extractedValue: field.value,
+      suggestedValue: field.value,
+      confidence: field.confidence,
+      reason: field.confidence < 90 ? 'Low OCR confidence' : 'Manual verification recommended',
+      priority: field.confidence < 90 ? 'High' : 'Medium',
+      status: 'Pending',
+      category: field.confidence < 90 ? 'Low Confidence' : 'Validation Issues',
+      cropCoordinates: field.coordinates,
+      assignedTo: 'Revenue Officer'
+    }));
 
-    setDocuments((previous) => [newDocument, ...previous]);
-    setRecords((previous) => [newRecord, ...previous]);
-    setReviewQueue((previous) => [...reviewItems, ...previous]);
+    const newAuditLog: AuditLog = {
+      id: `a-${Date.now()}`,
+      recordId: newId,
+      time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+      timestamp: new Date().toISOString(),
+      action: 'Document Uploaded',
+      details:
+        `Digitization completed for ${file.name}. Owner: ${ownerName}, ` +
+        `Khatian: ${khatianNumber}, Plot: ${plotNumber}, Area: ${area.toFixed(2)} Acre.`,
+      user: 'System',
+      type: 'upload'
+    };
 
-    setAuditLogs((previous) => [
-      {
-        id: `audit-${newId}`,
-        recordId: newId,
-        time: new Date().toLocaleTimeString(),
-        timestamp: uploadDate,
-        action: 'Document Uploaded',
-        details: `${file.name} uploaded and queued for extraction.`,
-        user: 'SIH Demo Officer',
-        type: 'upload'
-      },
-      ...previous
-    ]);
+    setDocuments([newDocument]);
+    setRecords([newRecord]);
+    setReviewQueue(newReviewItems);
+    setAuditLogs([newAuditLog]);
 
     setProcessingFile({
       name: file.name,
       size: file.size,
-      type: docType || 'Khatian',
-      district: district || 'Darjeeling',
-      language: 'Bengali'
+      type: file.type || docType || 'Land Record',
+      district: demoDistrict || district,
+      language: 'Bengali / English',
+      documentUrl: file.url || `${import.meta.env.BASE_URL}documents/Hackathon_Demo_real.png`
     });
 
+    setHighlightedField(extractedFields[0]);
+
     showToast(
-      'Document Uploaded',
-      `${file.name} has been added to the verification queue.`,
+      'Digitization Complete',
+      `Fields extracted from ${file.name}. Owner: ${ownerName}, Khatian: ${khatianNumber}, Plot: ${plotNumber}.`,
       'success'
     );
   };

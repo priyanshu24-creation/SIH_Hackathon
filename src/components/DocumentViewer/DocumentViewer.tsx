@@ -19,6 +19,8 @@ interface DocumentViewerProps {
   onFieldClick?: (field: ExtractedField) => void;
   heightClass?: string;
   showToolbar?: boolean;
+  documentUrl?: string;
+  fileName?: string;
 }
 
 export const DocumentViewer: React.FC<DocumentViewerProps> = ({
@@ -26,7 +28,9 @@ export const DocumentViewer: React.FC<DocumentViewerProps> = ({
   activeField,
   onFieldClick,
   heightClass = 'h-[560px]',
-  showToolbar = true
+  showToolbar = true,
+  documentUrl,
+  fileName = 'Uploaded land record'
 }) => {
   const { showToast } = useToast();
   const { openEvidenceModal } = useLandRecord();
@@ -39,7 +43,9 @@ export const DocumentViewer: React.FC<DocumentViewerProps> = ({
   const [dragStart, setDragStart] = useState<{ x: number; y: number }>({ x: 0, y: 0 });
 
   const containerRef = useRef<HTMLDivElement>(null);
-  const documentImageUrl = `${import.meta.env.BASE_URL}documents/Hackathon_Demo_real.png`;
+  const documentSource = documentUrl || `${import.meta.env.BASE_URL}documents/Hackathon_Demo_real.png`;
+  const isPdf = /\.pdf(?:$|\?)/i.test(documentSource) || /\.pdf$/i.test(fileName);
+  const [imageNaturalWidth, setImageNaturalWidth] = useState(1240);
 
   const handleZoomIn = () => setZoom((prev) => Math.min(prev + 0.25, 2.5));
   const handleZoomOut = () => setZoom((prev) => Math.max(prev - 0.25, 0.6));
@@ -52,8 +58,8 @@ export const DocumentViewer: React.FC<DocumentViewerProps> = ({
 
   const handleDownload = () => {
     const link = document.createElement('a');
-    link.href = documentImageUrl;
-    link.download = 'Hackathon_Demo_page1.png';
+    link.href = documentSource;
+    link.download = fileName || 'land-record-document';
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
@@ -84,7 +90,7 @@ export const DocumentViewer: React.FC<DocumentViewerProps> = ({
       {showToolbar && (
         <div className="bg-white text-[var(--color-text-primary)] px-4 py-3 flex items-center justify-between border-b border-[var(--color-border)] text-xs">
           <div className="flex items-center gap-2">
-            <span className="font-bold text-[var(--color-text-primary)]">Khatian_1456.pdf</span>
+            <span className="font-bold text-[var(--color-text-primary)] truncate max-w-[220px]">{fileName}</span>
             <span className="text-[12px] font-semibold px-2 py-0.5 rounded-md bg-[var(--color-success-bg)] text-[var(--color-primary)] border border-[var(--color-success-border)]">
               Sheet 1 / 1
             </span>
@@ -192,25 +198,27 @@ export const DocumentViewer: React.FC<DocumentViewerProps> = ({
           }}
           className="relative shadow-2xl shrink-0"
         >
-          {/* Scanned Image Component */}
-          <img
-            src={documentImageUrl}
-            alt="Scanned West Bengal Land Record - Khatian 1456"
-            className="w-[620px] h-auto max-w-none block pointer-events-none rounded shadow-2xl border border-black/30 object-contain"
-            draggable={false}
-            onError={(e) => {
-              console.error("Failed to load land record image:", documentImageUrl);
-              e.currentTarget.style.display = "none";
-            }}
-            onLoad={(e) => {
-              console.log(
-                "Land record image loaded:",
-                e.currentTarget.naturalWidth,
-                "x",
-                e.currentTarget.naturalHeight
-              );
-            }}
-          />
+          {isPdf ? (
+            <iframe
+              src={documentSource}
+              title={`Original document: ${fileName}`}
+              className="w-[620px] h-[760px] bg-white rounded border border-black/30 shadow-2xl"
+            />
+          ) : (
+            <>
+              <img
+                src={documentSource}
+                alt={`Original scanned land record: ${fileName}`}
+                className="w-[620px] h-auto max-w-none block pointer-events-none rounded shadow-2xl border border-black/30 object-contain"
+                draggable={false}
+                onError={(e) => {
+                  console.error('Failed to load land record document:', documentSource);
+                  e.currentTarget.style.display = 'none';
+                }}
+                onLoad={(e) => {
+                  setImageNaturalWidth(e.currentTarget.naturalWidth || 1240);
+                }}
+              />
 
           {/* Interactive Bounding Box Overlays — colour by confidence */}
           {fields.map((field) => {
@@ -221,7 +229,7 @@ export const DocumentViewer: React.FC<DocumentViewerProps> = ({
                 field.value.toLowerCase().includes(searchQuery.toLowerCase()));
 
             // Coordinate mapping (scaled to 620px canvas width vs 800px SVG viewbox)
-            const scaleFactor = 620 / 800;
+            const scaleFactor = 620 / imageNaturalWidth;
             const left = field.coordinates.x * scaleFactor;
             const top = field.coordinates.y * scaleFactor;
             const width = field.coordinates.width * scaleFactor;
@@ -274,12 +282,14 @@ export const DocumentViewer: React.FC<DocumentViewerProps> = ({
               </div>
             );
           })}
+            </>
+          )}
         </div>
 
         {/* Floating Instruction Banner */}
         <div className="absolute bottom-3 left-3 bg-[var(--color-text-primary)]/85 backdrop-blur-xs text-white text-[12px] px-3 py-1.5 rounded-lg border border-white/10 flex items-center gap-2 pointer-events-none shadow-sm">
           <Eye className="w-3.5 h-3.5 text-[var(--color-warning-border)]" />
-          <span>Click highlighted bounding boxes to view OCR evidence</span>
+          <span>Click highlighted regions to compare extracted data with the original document</span>
         </div>
       </div>
     </div>

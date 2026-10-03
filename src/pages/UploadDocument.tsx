@@ -27,11 +27,7 @@ export const UploadDocument: React.FC = () => {
     name: string;
     size: string;
     type: string;
-  } | null>({
-    name: 'Khatian_1456.pdf',
-    size: '2.4 MB',
-    type: 'application/pdf'
-  });
+  } | null>(null);
   const [language, setLanguage] = useState<string>('Auto Detect');
   const [docType, setDocType] = useState<string>('Khatian / Land Record');
   const [district, setDistrict] = useState<string>('Darjeeling');
@@ -87,6 +83,7 @@ export const UploadDocument: React.FC = () => {
   };
 
   const handleRemoveFile = () => {
+    setActualFile(null);
     setSelectedFile(null);
     setUploadProgress(0);
     if (fileInputRef.current) fileInputRef.current.value = '';
@@ -98,14 +95,26 @@ export const UploadDocument: React.FC = () => {
       return;
     }
 
+    if (!actualFile) {
+      showToast('File Required', 'Please choose the actual scanned document before starting digitization.', 'warning');
+      return;
+    }
+
+    const documentUrl = URL.createObjectURL(actualFile);
+
     ingestNewDocument(
-      { name: selectedFile.name, size: selectedFile.size, type: selectedFile.type },
+      {
+        name: actualFile.name,
+        size: selectedFile.size,
+        type: actualFile.type || selectedFile.type,
+        url: documentUrl
+      },
       docType,
       district
     );
 
     showToast('Digitization Started', `Extracting information from ${selectedFile.name}...`, 'info');
-    navigate('/documents');
+    navigate('/documents/PROP-2026-001');
   };
 
   return (
